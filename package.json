@@ -1,0 +1,16 @@
+{
+  "name": "taskteam",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "start": "concurrently \"npm start -w server\" \"npm run dev -w client\"",
+    "install:all": "npm install && npm install -w client && npm install -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
