@@ -1,11 +1,12 @@
 import { DndContext, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { Workflow, Clock, CheckCircle } from 'lucide-react';
 import { formatDisplayDate } from '../utils/dateFormat';
+import { getPriorityBadgeClass } from '../utils/priorityStyles';
 
 const columns = [
-  { id: 'todo', label: 'To Do', icon: Clock, tone: 'bg-blue-50', border: 'border-blue-200', header: 'text-blue-700', badge: 'bg-blue-100 text-blue-700' },
-  { id: 'in_progress', label: 'In Progress', icon: Workflow, tone: 'bg-amber-50', border: 'border-amber-200', header: 'text-amber-700', badge: 'bg-amber-100 text-amber-700' },
-  { id: 'done', label: 'Done', icon: CheckCircle, tone: 'bg-emerald-50', border: 'border-emerald-200', header: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' }
+  { id: 'todo', label: 'To Do', icon: Clock, tone: 'bg-white', border: 'border-gray-300', header: 'text-gray-900', badge: 'bg-white text-gray-900 border-gray-900' },
+  { id: 'in_progress', label: 'In Progress', icon: Workflow, tone: 'bg-white', border: 'border-gray-300', header: 'text-gray-900', badge: 'bg-white text-gray-900 border-gray-900' },
+  { id: 'done', label: 'Done', icon: CheckCircle, tone: 'bg-white', border: 'border-gray-300', header: 'text-gray-900', badge: 'bg-white text-gray-900 border-gray-900' }
 ];
 
 function TaskCard({ task }) {
@@ -28,14 +29,14 @@ function TaskCard({ task }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="font-semibold text-gray-900">{task.title}</h4>
-          <p className="mt-1 text-xs leading-5 text-gray-600">{task.description || 'No description'}</p>
+          <h4 className="font-semibold text-gray-950">{task.title}</h4>
+          <p className="mt-1 text-xs leading-5 text-gray-700">{task.description || 'No description'}</p>
         </div>
-        <span className="rounded-full border-2 border-gray-200 bg-gray-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-700">
+        <span className={`rounded-full border-2 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${getPriorityBadgeClass(task.priority)}`}>
           {task.priority}
         </span>
       </div>
-      <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
+      <div className="mt-4 flex items-center justify-between text-xs text-gray-700">
         <span>{task.assignee?.name || 'No user assign'}</span>
         <span>{formatDisplayDate(task.dueDate)}</span>
       </div>
@@ -51,7 +52,7 @@ function TaskColumn({ column, tasks }) {
     <section
       ref={setNodeRef}
       className={`rounded-lg border-2 ${column.border} ${column.tone} p-4 transition ${
-        isOver ? 'ring-2 ring-blue-400' : ''
+        isOver ? 'ring-2 ring-gray-950' : ''
       }`}
     >
       <div className="flex items-center justify-between">
@@ -59,13 +60,13 @@ function TaskColumn({ column, tasks }) {
           <Icon className="h-4 w-4" />
           {column.label}
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${column.badge}`}>{tasks.length}</span>
+        <span className={`rounded-full border-2 px-3 py-1 text-xs font-bold ${column.badge}`}>{tasks.length}</span>
       </div>
       <div className="mt-4 space-y-3">
         {tasks.length ? (
           tasks.map((task) => <TaskCard key={task.id} task={task} />)
         ) : (
-          <div className={`rounded-lg border-2 border-dashed ${column.border} ${column.tone} px-4 py-6 text-sm text-gray-600`}>
+          <div className={`rounded-lg border-2 border-dashed ${column.border} ${column.tone} px-4 py-6 text-sm text-gray-700`}>
             Drop tasks here
           </div>
         )}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Plus, AlertCircle } from 'lucide-react';
 import { api } from '../api/client';
+import SelectField from '../components/SelectField';
 import TaskTable from '../components/TaskTable';
 import { useAuthStore } from '../store/authStore';
 import { getUniqueProjectMembers } from '../utils/projectMembers';
@@ -14,6 +15,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [globalSelectedProjectId, setGlobalSelectedProjectId] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const {
     register,
     handleSubmit,
@@ -27,12 +29,81 @@ export default function TasksPage() {
       description: '',
       dueDate: '',
       priority: 'medium',
-      projectId: '',
       assignedTo: ''
     }
   });
 
-  const selectedProjectId = watch('projectId');
+  const selectedPriority = watch('priority');
+
+  const selectedProject = useMemo(() => {
+    if (!globalSelectedProjectId) {
+      return null;
+    }
+
+    return projects.find((project) => project.id === globalSelectedProjectId) || null;
+  }, [projects, globalSelectedProjectId]);
+
+  const visibleTasks = useMemo(() => {
+    if (!globalSelectedProjectId) {
+      return tasks;
+    }
+
+    return tasks.filter((task) => String(task.projectId) === String(globalSelectedProjectId));
+  }, [tasks, globalSelectedProjectId]);
+
+  const sortedTasks = useMemo(() => {
+    if (!sortConfig.key) {
+      return visibleTasks;
+    }
+
+    const statusOrder = {
+      todo: 1,
+      in_progress: 2,
+      done: 3
+    };
+
+    const priorityOrder = {
+      low: 1,
+      medium: 2,
+      high: 3
+    };
+
+    const getComparableValue = (task) => {
+      if (sortConfig.key === 'dueDate') {
+        const date = new Date(task.dueDate);
+        return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+      }
+
+      if (sortConfig.key === 'status') {
+        return statusOrder[task.status] || 0;
+      }
+
+      if (sortConfig.key === 'priority') {
+        return priorityOrder[task.priority] || 0;
+      }
+
+      return 0;
+    };
+
+    return [...visibleTasks].sort((leftTask, rightTask) => {
+      const leftValue = getComparableValue(leftTask);
+      const rightValue = getComparableValue(rightTask);
+
+      if (leftValue === rightValue) {
+        return 0;
+      }
+
+      const comparison = leftValue > rightValue ? 1 : -1;
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [visibleTasks, sortConfig]);
+
+  const handleSortChange = (key) => {
+    setSortConfig((currentSort) => ({
+      key,
+      direction: currentSort.key === key && currentSort.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   const loadTasks = async () => {
     try {
@@ -75,41 +146,45 @@ export default function TasksPage() {
   }, [role]);
 
   const availableAssignees = useMemo(() => {
-    if (!selectedProjectId) {
+    if (!selectedProject) {
       return [];
     }
 
-    const selectedProject = projects.find((project) => project.id === selectedProjectId);
     return getUniqueProjectMembers(selectedProject);
-  }, [projects, selectedProjectId]);
+  }, [selectedProject]);
 
   const selectedProjectName = useMemo(() => {
-    const selectedProject = projects.find((project) => project.id === selectedProjectId);
     return selectedProject?.name || '';
-  }, [projects, selectedProjectId]);
+  }, [selectedProject]);
 
   useEffect(() => {
     setValue('assignedTo', '');
-  }, [selectedProjectId, setValue]);
-
-  useEffect(() => {
-    if (globalSelectedProjectId) {
-      setValue('projectId', globalSelectedProjectId);
-    }
   }, [globalSelectedProjectId, setValue]);
 
   const handleCreateTask = async (values) => {
     try {
-      await api.post('/tasks', {
+      if (!globalSelectedProjectId) {
+        setError('Select a project before creating a task');
+        return;
+      }
+
+      const response = await api.post('/tasks', {
         title: values.title,
         description: values.description,
         dueDate: values.dueDate,
         priority: values.priority,
-        projectId: values.projectId,
+        projectId: globalSelectedProjectId,
         assignedTo: values.assignedTo || undefined
       });
-      reset();
-      await loadPageData();
+      const createdTask = response.data.task;
+      setTasks((currentTasks) => [createdTask, ...currentTasks]);
+      reset({
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: 'medium',
+        assignedTo: ''
+      });
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Unable to create task');
     }
@@ -121,6 +196,15 @@ export default function TasksPage() {
       await loadTasks();
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Unable to update task');
+    }
+  };
+
+  const updateTaskPriority = async (task, priority) => {
+    try {
+      await api.put(`/tasks/${task.id}`, { priority });
+      await loadTasks();
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || 'Unable to update priority');
     }
   };
 
@@ -153,10 +237,11 @@ export default function TasksPage() {
           <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
           <p className="mt-2 text-gray-600">All tasks visible to your role.</p>
         </div>
-        <select
+        <SelectField
+          wrapperClassName="inline-block"
+          className="min-w-[14rem] border-2 border-gray-200 bg-white text-gray-900"
           value={globalSelectedProjectId}
-          onChange={(e) => setGlobalSelectedProjectId(e.target.value)}
-          className="rounded-lg border-2 border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          onChange={(event) => setGlobalSelectedProjectId(event.target.value || '')}
         >
           <option value="">All Projects</option>
           {projects.map((project) => (
@@ -164,38 +249,50 @@ export default function TasksPage() {
               {project.name}
             </option>
           ))}
-        </select>
+        </SelectField>
       </div>
       {role !== 'developer' && (
         <form
           onSubmit={handleSubmit(handleCreateTask)}
-          className="grid gap-3 rounded-lg border-2 border-gray-200 bg-white p-4 shadow-sm md:grid-cols-[1.2fr_1fr_1fr_auto]"
+          className="grid gap-3 rounded-lg border-2 border-gray-200 bg-white p-4 shadow-sm md:grid-cols-[1.2fr_0.8fr_1fr_1fr_auto]"
         >
           <input
-            className="rounded-lg border-2 border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="h-11 min-w-[14rem] rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-900 shadow-sm outline-none transition-colors hover:bg-gray-50 focus:border-gray-400 focus:ring-[3px] focus:ring-black/10"
             placeholder="Task title"
             {...register('title', { required: true })}
           />
-          <select
-            className="rounded-lg border-2 border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            {...register('assignedTo')}
+          <SelectField
+            wrapperClassName="inline-block"
+            className="h-11 min-w-[10rem] border-2 border-gray-200 bg-white text-gray-900"
+            value={selectedPriority || 'medium'}
+            onChange={(event) => setValue('priority', event.target.value || 'medium')}
           >
-            <option value="">{selectedProjectName ? `Assign from ${selectedProjectName}` : 'Select project above'}</option>
+            <option value="low">Low Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="high">High Priority</option>
+          </SelectField>
+          <SelectField
+            wrapperClassName="inline-block"
+            className="h-11 min-w-[14rem] border-2 border-gray-200 bg-white text-gray-900"
+            value={watch('assignedTo') || ''}
+            onChange={(event) => setValue('assignedTo', event.target.value || '')}
+          >
+            <option value="">{selectedProjectName ? `Assign from ${selectedProjectName}` : 'Select a project first'}</option>
             {availableAssignees.map((user) => (
               <option key={user.id || user._id} value={user.id || user._id}>
                 {user.name}
               </option>
             ))}
-          </select>
+          </SelectField>
           <input
             type="date"
-            className="rounded-lg border-2 border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="h-11 rounded-lg border-2 border-gray-200 bg-gray-50 px-4 text-gray-900 outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-200"
             {...register('dueDate', { required: true })}
           />
           <button
             type="submit"
             disabled={creatingTask || !globalSelectedProjectId}
-            className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 font-bold text-white transition hover:from-blue-700 hover:to-indigo-700 disabled:opacity-70"
+            className="flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-gray-900 bg-gray-900 px-5 font-bold text-white transition hover:bg-gray-800 disabled:opacity-70"
           >
             <Plus className="h-4 w-4" />
             {creatingTask ? 'Creating...' : 'Create'}
@@ -204,11 +301,15 @@ export default function TasksPage() {
       )}
       {error && <div className="flex items-center gap-3 rounded-lg border-2 border-red-300 bg-red-50 p-5 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}
       <TaskTable
-        tasks={tasks}
+        tasks={sortedTasks}
         canDelete={role === 'admin' || role === 'project_manager'}
         canManageAssignee={role === 'admin'}
+        canManagePriority={role === 'admin' || role === 'project_manager'}
         users={users}
+        sortConfig={sortConfig}
+        onSortChange={handleSortChange}
         onStatusChange={updateTaskStatus}
+        onPriorityChange={updateTaskPriority}
         onAssigneeChange={updateTaskAssignee}
         onDelete={deleteTask}
       />

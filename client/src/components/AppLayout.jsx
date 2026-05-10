@@ -5,8 +5,8 @@ import { useAuthStore } from '../store/authStore';
 const navLinkClass = ({ isActive }) =>
   `px-4 py-2 text-sm font-medium transition border-b-2 ${
     isActive 
-      ? 'text-blue-600 border-blue-600' 
-      : 'text-gray-600 border-transparent hover:text-blue-600'
+      ? 'text-gray-950 border-gray-950' 
+      : 'text-gray-600 border-transparent hover:text-gray-950'
   }`;
 
 export default function AppLayout() {
@@ -22,7 +22,7 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen text-gray-900">
-      <header className="sticky top-0 z-20 border-b border-gray-200 bg-gradient-to-r from-white to-blue-50/50 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-gray-300 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <Link to="/dashboard" className="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             Work<span className="text-orange-500">Sync</span>
@@ -51,7 +51,7 @@ export default function AppLayout() {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-2 rounded-lg border-2 border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+              className="flex items-center gap-2 rounded-lg border-2 border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Logout</span>

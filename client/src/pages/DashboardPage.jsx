@@ -4,22 +4,23 @@ import StatCard from '../components/StatCard';
 import Loading from '../components/Loading';
 import { api } from '../api/client';
 import { formatDisplayDate } from '../utils/dateFormat';
+import { getPriorityBadgeClass } from '../utils/priorityStyles';
 
 function TaskList({ tasks }) {
   if (!tasks.length) {
-    return <p className="text-sm text-gray-600">No overdue tasks.</p>;
+    return <p className="text-sm text-gray-700">No overdue tasks.</p>;
   }
 
   return (
     <div className="space-y-3">
       {tasks.map((task) => (
-        <div key={task.id} className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4">
+        <div key={task.id} className="rounded-lg border-2 border-gray-300 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h4 className="font-semibold text-gray-900">{task.title}</h4>
-              <p className="mt-1 text-xs text-gray-600">{task.project?.name || 'Project'}</p>
+              <h4 className="font-semibold text-gray-950">{task.title}</h4>
+              <p className="mt-1 text-xs text-gray-700">{task.project?.name || 'Project'}</p>
             </div>
-            <span className="flex items-center gap-1 rounded-full border-2 border-red-300 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-red-700">
+            <span className="flex items-center gap-1 rounded-full border-2 border-gray-900 bg-gray-900 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white">
               <Clock className="h-3 w-3" />
               Overdue
             </span>
@@ -79,21 +80,21 @@ export default function DashboardPage() {
   }
 
   if (error) {
-    return <div className="flex items-center gap-3 rounded-lg border-2 border-red-300 bg-red-50 p-6 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>;
+    return <div className="flex items-center gap-3 rounded-lg border-2 border-gray-300 bg-white p-6 text-gray-900 shadow-sm"><AlertCircle className="h-5 w-5" />{error}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">A scoped view of work based on your role.</p>
+          <h1 className="text-3xl font-bold text-gray-950">Dashboard</h1>
+          <p className="mt-2 text-gray-700">A scoped view of work based on your role.</p>
         </div>
         <button
           type="button"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center gap-2 rounded-lg border-2 border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex items-center gap-2 rounded-lg border-2 border-gray-900 bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -106,22 +107,22 @@ export default function DashboardPage() {
         <StatCard label="Done" value={summary.done} tone="emerald" />
       </div>
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-lg border-2 border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border-2 border-gray-300 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Overdue Tasks</h2>
-            <span className="flex items-center justify-center rounded-full bg-red-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-red-700">
+            <h2 className="text-lg font-bold text-gray-950">Overdue Tasks</h2>
+            <span className="flex items-center justify-center rounded-full border-2 border-red-250 bg-red-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-red-700">
               {summary.overdueTasksCount}
             </span>
           </div>
           <TaskList tasks={overdueTasks} />
         </section>
-        <section className="rounded-lg border-2 border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border-2 border-gray-300 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Recent Tasks</h2>
+            <h2 className="text-lg font-bold text-gray-950">Recent Tasks</h2>
           </div>
-          <div className="overflow-hidden rounded-lg border-2 border-gray-200">
+          <div className="overflow-hidden rounded-lg border-2 border-gray-300">
             <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700">
+              <thead className="bg-gray-100 text-gray-900">
                 <tr>
                   <th className="px-4 py-3 font-bold">Task</th>
                   <th className="px-4 py-3 font-bold">Status</th>
@@ -131,11 +132,15 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {recentActivity.map((task) => (
-                  <tr key={task.id} className="text-gray-700 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-semibold text-gray-900">{task.title}</td>
-                    <td className="px-4 py-3 capitalize text-gray-700">{task.status.replace('_', ' ')}</td>
-                    <td className="px-4 py-3 capitalize text-gray-700">{task.priority}</td>
-                    <td className="px-4 py-3 text-gray-700">{formatDisplayDate(task.updatedAt)}</td>
+                  <tr key={task.id} className="text-gray-800 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-semibold text-gray-950">{task.title}</td>
+                    <td className="px-4 py-3 capitalize text-gray-800">{task.status.replace('_', ' ')}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full border-2 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${getPriorityBadgeClass(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-800">{formatDisplayDate(task.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>

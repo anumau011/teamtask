@@ -1,8 +1,36 @@
-import { Trash2 } from 'lucide-react';
+import { ArrowUpDown, Trash2 } from 'lucide-react';
 import SelectField from './SelectField';
 import { formatDisplayDate } from '../utils/dateFormat';
+import { getPriorityBadgeClass, getPriorityBorderClass } from '../utils/priorityStyles';
 
-export default function TaskTable({ tasks, onStatusChange, onAssigneeChange, onDelete, canDelete, users = [], canManageAssignee = false }) {
+function SortableHeader({ label, columnKey, sortConfig, onSortChange }) {
+  const isActive = sortConfig?.key === columnKey;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSortChange?.(columnKey)}
+      className="flex w-full items-center justify-between gap-2 text-left font-bold text-inherit transition hover:text-gray-900"
+    >
+      <span>{label}</span>
+      <ArrowUpDown className={`h-4 w-4 shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`} />
+    </button>
+  );
+}
+
+export default function TaskTable({
+  tasks,
+  onStatusChange,
+  onPriorityChange,
+  onAssigneeChange,
+  onDelete,
+  canDelete,
+  users = [],
+  canManageAssignee = false,
+  canManagePriority = false,
+  sortConfig,
+  onSortChange
+}) {
   return (
     <div className="overflow-visible rounded-lg border-2 border-gray-200 bg-white shadow-sm">
       <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
@@ -11,16 +39,22 @@ export default function TaskTable({ tasks, onStatusChange, onAssigneeChange, onD
             <th className="px-5 py-4 font-bold">Task</th>
             <th className="px-5 py-4 font-bold">Project</th>
             <th className="px-5 py-4 font-bold">Assignee</th>
-            <th className="px-5 py-4 font-bold">Priority</th>
-            <th className="px-5 py-4 font-bold">Due</th>
-            <th className="px-5 py-4 font-bold">Status</th>
+            <th className="px-5 py-4 font-bold">
+              <SortableHeader label="Priority" columnKey="priority" sortConfig={sortConfig} onSortChange={onSortChange} />
+            </th>
+            <th className="px-5 py-4 font-bold">
+              <SortableHeader label="Due" columnKey="dueDate" sortConfig={sortConfig} onSortChange={onSortChange} />
+            </th>
+            <th className="px-5 py-4 font-bold">
+              <SortableHeader label="Status" columnKey="status" sortConfig={sortConfig} onSortChange={onSortChange} />
+            </th>
             <th className="px-5 py-4 font-bold">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
           {tasks.map((task) => (
             <tr key={task.id} className="align-top text-gray-700 hover:bg-gray-50">
-              <td className="px-5 py-4">
+              <td className={`border-l-4 px-5 py-4 ${getPriorityBorderClass(task.priority)}`}>
                 <div className="font-semibold text-gray-900">{task.title}</div>
                 <div className="mt-1 max-w-lg text-xs leading-5 text-gray-600">{task.description || 'No description'}</div>
               </td>
@@ -44,7 +78,24 @@ export default function TaskTable({ tasks, onStatusChange, onAssigneeChange, onD
                   <span>{task.assignee?.name || 'No user assign'}</span>
                 )}
               </td>
-              <td className="px-5 py-4 capitalize text-gray-700">{task.priority}</td>
+              <td className="px-5 py-4">
+                {canManagePriority ? (
+                  <SelectField
+                    wrapperClassName="inline-block"
+                    className="min-w-[10rem] border-2 border-gray-200 bg-white text-gray-900"
+                    value={task.priority}
+                    onChange={(event) => onPriorityChange?.(task, event.target.value)}
+                  >
+                    <option value="low">Low Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="high">High Priority</option>
+                  </SelectField>
+                ) : (
+                  <span className={`inline-flex rounded-full border-2 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${getPriorityBadgeClass(task.priority)}`}>
+                    {task.priority}
+                  </span>
+                )}
+              </td>
               <td className="px-5 py-4 text-gray-700">{formatDisplayDate(task.dueDate)}</td>
               <td className="px-5 py-4">
                 <SelectField
